@@ -7,13 +7,12 @@ import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 public class WeatherController {
@@ -28,19 +27,30 @@ public class WeatherController {
         this.weatherService = weatherService;
     }
 
+//    @GetMapping("/weather")
+//    public ResponseEntity<?> queryWeatherByCity(@RequestParam(required = true) List<String> city) throws ExecutionException, InterruptedException {
+//        return new ResponseEntity<>(weatherService.findCityIdByName(city), HttpStatus.OK);
+//    }
+
+
     @GetMapping("/weather")
-    public ResponseEntity<?> queryWeatherByCity(@RequestParam(required = true) String city) {
-        return new ResponseEntity<>(weatherService.findCityIdByName(city), HttpStatus.OK);
+    public ResponseEntity<?> queryWeatherByCity(@RequestParam(required = true) List<String> city) throws ExecutionException, InterruptedException {
+        return new ResponseEntity<>(weatherService.findWeatherByCity(city), HttpStatus.OK);
     }
 
 
     @GetMapping("/weather/{id}")
     public ResponseEntity<?> queryWeatherByCity(@PathVariable int id) {
-        return new ResponseEntity<Map>(weatherService.findCityNameById(id), HttpStatus.OK);
+        return new ResponseEntity<>(weatherService.findWeatherById(id), HttpStatus.OK);
     }
 
     @GetMapping("/weather/port")
     public ResponseEntity<?> queryWeatherByCity() {
         return new ResponseEntity<>("weather service + " + randomServerPort, HttpStatus.OK);
     }
+
+//    @ExceptionHandler
+//    public void test() throws Exception {
+//        throw new Exception();
+//    }
 }

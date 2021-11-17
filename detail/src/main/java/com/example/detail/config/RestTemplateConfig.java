@@ -1,4 +1,4 @@
-package com.example.search.config;
+package com.example.detail.config;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
@@ -10,14 +10,8 @@ import java.time.Duration;
 
 @Configuration
 public class RestTemplateConfig {
-    @Bean
-    @LoadBalanced
-    public RestTemplate internalRestTemplate() {
-        return new RestTemplateBuilder().setConnectTimeout(Duration.ofSeconds(5)).build();
-    }
-
-    @Bean
-    public RestTemplate externalRestTemplate() {
-        return new RestTemplateBuilder().setConnectTimeout(Duration.ofSeconds(5)).build();
-    }
+//    @Bean
+//    public RestTemplate getRestTemplate() {
+//        return new RestTemplateBuilder().setConnectTimeout(Duration.ofSeconds(5)).build();
+//    }
 }

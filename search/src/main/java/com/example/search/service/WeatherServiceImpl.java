@@ -3,41 +3,97 @@ package com.example.search.service;
 
 import com.example.search.config.EndpointConfig;
 import com.example.search.pojo.City;
+import com.netflix.discovery.converters.Auto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import rx.Completable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 public class WeatherServiceImpl implements WeatherService{
 
-    private final RestTemplate restTemplate;
 
+    private final RestTemplate internalRestTemplate;
 
-    public WeatherServiceImpl(RestTemplate getRestTemplate) {
-        this.restTemplate = getRestTemplate;
+    private final RestTemplate externalRestTemplate;
+
+    // thread pool
+    public static ExecutorService executor = Executors.newFixedThreadPool(10);
+
+    public WeatherServiceImpl(RestTemplate internalRestTemplate, RestTemplate externalRestTemplate) {
+        this.internalRestTemplate = internalRestTemplate;
+        this.externalRestTemplate = externalRestTemplate;
     }
+
+    //    @Override
+//    @Retryable(include = IllegalAccessError.class)
+//    public List<List<Integer>> findCityIdByName(List<String> city) throws ExecutionException, InterruptedException {
+//        List<CompletableFuture<List<Integer>>> allFutures = new ArrayList<>();
+//        List<List<Integer>> list = new ArrayList<>();
+//        for (String c: city) {
+//            CompletableFuture<List<Integer>> future = CompletableFuture.supplyAsync(() -> {
+//                List<Integer> temp = helper(c);
+//                list.add(temp);
+//                return temp;
+//            }, executor);
+//            allFutures.add(future);
+//        }
+//
+//        CompletableFuture<Void> allOf = CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0]));
+//        allOf.get();
+//        return list;
+//
+//    }
+//
+//    private List<Integer> helper(String city) {
+//        City[] cities = restTemplate.getForObject(EndpointConfig.queryWeatherByCity + city, City[].class);
+//        List<Integer> ans = new ArrayList<>();
+//        for(City c: cities) {
+//            if(c != null && c.getWoeid() != null) {
+//                ans.add(c.getWoeid());
+//            }
+//        }
+//        return ans;
+//    }
 
     @Override
     @Retryable(include = IllegalAccessError.class)
-    public List<Integer> findCityIdByName(String city) {
-        City[] cities = restTemplate.getForObject(EndpointConfig.queryWeatherByCity + city, City[].class);
-        List<Integer> ans = new ArrayList<>();
-        for(City c: cities) {
-            if(c != null && c.getWoeid() != null) {
-                ans.add(c.getWoeid());
-            }
+    public List<Map<String, Map>> findWeatherByCity(List<String> city) throws ExecutionException, InterruptedException {
+        List<CompletableFuture<List<Integer>>> allFutures = new ArrayList<>();
+        List<Map<String, Map>> list = new ArrayList<>();
+        for (String c: city) {
+            CompletableFuture<List<Integer>> future = CompletableFuture.supplyAsync(() -> {
+                List<Integer> temp = helper(c);
+                for (int id: temp) {
+                    list.add(findWeatherById(id));
+                }
+                return temp;
+            }, executor);
+            allFutures.add(future);
         }
-        return ans;
+        CompletableFuture<Void> allOf = CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0]));
+        allOf.get();
+        return list;
     }
 
+    public List<Integer> helper(String name) {
+        List<Integer> res = internalRestTemplate.getForObject("http://detail-service/detail?city="+name, ArrayList.class);
+        return res;
+    }
+
+
     @Override
-    public Map<String, Map> findCityNameById(int id) {
-        Map<String, Map> ans = restTemplate.getForObject(EndpointConfig.queryWeatherById + id, HashMap.class);
+    public Map<String, Map> findWeatherById(int id) {
+        Map<String, Map> ans = externalRestTemplate.getForObject(EndpointConfig.queryWeatherById + id, HashMap.class);
+        System.out.println(ans);
         return ans;
     }
 }
